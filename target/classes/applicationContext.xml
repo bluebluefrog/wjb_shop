@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="
+            http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/context
+            http://www.springframework.org/schema/context/spring-context.xsd
+            http://www.springframework.org/schema/task
+            http://www.springframework.org/schema/task/spring-task.xsd
+            http://www.springframework.org/schema/mvc
+            http://www.springframework.org/schema/mvc/spring-mvc.xsd
+            http://www.springframework.org/schema/tx
+            http://www.springframework.org/schema/tx/spring-tx.xsd">
+        <!--开启SpringMVC注解模式-->
+    <!--    使spring可以在启动时去扫描注解类-->
+    <context:component-scan base-package="com.wjb"/>
+    <!--    开启springMVC注解-->
+    <mvc:annotation-driven>
+        <mvc:message-converters>
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                <property name="supportedMediaTypes">
+                    <list>
+                        <value>text/html;charset=utf-8</value>
+                        <value>application/json;charset=utf-8</value>
+                    </list>
+                </property>
+            </bean>
+        </mvc:message-converters>
+
+    </mvc:annotation-driven>
+    <!--    排除静态资源-->
+    <mvc:default-servlet-handler/>
+
+    <bean id="freemarkerConfig" class="org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer">
+        <property name="templateLoaderPath" value="/WEB-INF/ftl"/>
+        <property name="freemarkerSettings">
+            <props>
+                <!--渲染时所用的字符集编码-->
+                <prop key="defaultEncoding">UTF-8</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean id="ViewResolver" class="org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver">
+    <property name="contentType" value="text/html;charset=utf-8"/>
+    <property name="suffix" value=".ftl"/>
+</bean>
+
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql://localhost:3306/wjb_shop?useSSL=false&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Shanghai&amp;allowPublicKeyRetrieval=true"/>
+        <property name="username" value="root"/>
+        <property name="password" value="123456"/>
+        <property name="initialSize" value="5"/>
+        <property name="maxActive" value="20"/>
+    </bean>
+
+
+    <!--SqlSessionFactoryBean用于根据配置信息创建SqlSessionFactory,不再需要我们自己编码创建-->
+    <bean id="sessionFactory" class="com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean">
+        <!--哪个数据源-->
+        <property name="dataSource" ref="dataSource"/>
+        <!--用于存储mapper的文件夹-->
+        <property name="mapperLocations" value="classpath:mappers/*.xml"/>
+        <!--MyBatis配置文件地址-->
+        <property name="configLocation" value="classpath:mybatis-config.xml"/>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.wjb.shop.mapper"/>
+    </bean>
+
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/></bean>
+
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+    <!--DefaultKaptcha使用该类来完成验证码的生成-->
+    <bean id="kaptchaProducer" class="com.google.code.kaptcha.impl.DefaultKaptcha">
+        <property name="config">
+            <!--给kaptcha验证码工具进行配置-->
+            <bean class="com.google.code.kaptcha.util.Config">
+                <!--按构造属性名进行配置-->
+                <constructor-arg>
+                    <props>
+                        <!--验证码图片是否包含边框-->
+                        <prop key="kaptcha.boder">no</prop>
+                        <!--验证码图片宽度为120像素-->
+                        <prop key="kaptcha.image.width">120</prop>
+                        <!-- 验证码图片字体颜色为蓝色 -->
+                        <prop key="kaptcha.textproducer.font.color">blue</prop>
+                        <!-- 每个字符最大占用40像素 -->
+                        <prop key="kaptcha.textproducer.font.size">40</prop>
+                        <!-- 验证码包含4个字符 -->
+                        <prop key="kaptcha.textproducer.char.length">4</prop>
+                    </props>
+                </constructor-arg>
+            </bean>
+        </property>
+    </bean>
+
+    <!--开启Sprinfg Task定时任务的注解模式-->
+    <task:annotation-driven/>
+
+    <!-- 激活Spring MVC 文件上传 -->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="defaultEncoding" value="UTF-8"/>
+    </bean>
+
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/management/**"/>
+            <mvc:exclude-mapping path="/resources/**"/>
+            <mvc:exclude-mapping path="/management/user/**"/>
+            <bean class="com.wjb.shop.interceptor.UserInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
+
+</beans>
